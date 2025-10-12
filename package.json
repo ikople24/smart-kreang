@@ -1,5 +1,5 @@
 {
-  "name": "smart-nongfag",
+  "name": "smart-kreang",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -24,7 +24,6 @@
     "next": "15.3.2",
     "next-cloudinary": "^6.16.0",
     "react": "^19.1.0",
-
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
     "react-leaflet": "^5.0.0",
@@ -46,6 +45,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "postcss": "^8.5.3",
+    "sharp": "^0.34.4",
     "tailwindcss": "^4.1.7",
     "tw-animate-css": "^1.3.0",
     "typescript": "^5"

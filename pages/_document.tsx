@@ -25,10 +25,10 @@ export default function Document() {
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-icon-180x180.png" />
 
         {/* Social Sharing Meta Tags */}
-        <meta property="og:title" content="SMART-NONGFAG" />
-        <meta property="og:description" content="ระบบe-service เทศบาลตำบลหนองแฟก (OpenDataCity)" />
-        <meta property="og:url" content="https://smart-nongfag.app" />
-        <meta property="og:image" content="https://smart-nongfag.app/smart-nongfag.png" />
+        <meta property="og:title" content="SMART-KREANG" />
+        <meta property="og:description" content="ระบบe-service องค์การบริหารส่วนตำบลเคร็ง (OpenDataCity)" />
+        <meta property="og:url" content="https://smart-kreang.app" />
+        <meta property="og:image" content="https://smart-kreang.app/smart-kreang.png" />
         <meta property="og:image:type" content="image/png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />

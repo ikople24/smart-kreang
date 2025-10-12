@@ -20,7 +20,7 @@ const TopNavbar = () => {
         />
       </div>
       <div className="text-2xl font-semibold text-blue-950 flex justify-center items-center">
-        <span className="text-base sm:text-lg md:text-xl lg:text-2xl">SMART-NONGFAG</span>
+        <span className="text-base sm:text-lg md:text-xl lg:text-2xl">SMART-KREANG</span>
       </div>
       <div className="absolute right-4 flex items-center space-x-2">
         {isSignedIn ? (
