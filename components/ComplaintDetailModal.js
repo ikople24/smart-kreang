@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import { formatDate, getDaysSince } from '@/utils/dateUtils';
 
 const ReporterInfoMap = dynamic(() => import('./ReporterInfoMap'), { ssr: false });
 
@@ -70,27 +71,7 @@ export default function ComplaintDetailModal({ complaint, isOpen, onClose, assig
     return menu?.find(m => m.Prob_name === category)?.Prob_pic || null;
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'ไม่ระบุ';
-    
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'ไม่ระบุ';
-    
-    return date.toLocaleDateString('th-TH', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getDaysSinceUpdate = (updatedAt) => {
-    const days = Math.floor((new Date() - new Date(updatedAt)) / (1000 * 60 * 60 * 24));
-    if (days === 0) return "วันนี้";
-    if (days === 1) return "เมื่อวาน";
-    return `${days} วันที่แล้ว`;
-  };
+  // Use utility functions from dateUtils
 
   const isValidImageUrl = (url) => {
     if (!url) return false;
@@ -182,7 +163,7 @@ export default function ComplaintDetailModal({ complaint, isOpen, onClose, assig
                   {formatDate(complaint.updatedAt)}
                   <br />
                   <span className="text-xs text-gray-500">
-                    ({getDaysSinceUpdate(complaint.updatedAt)})
+                    ({getDaysSince(complaint.updatedAt)})
                   </span>
                 </p>
               </div>

@@ -3,6 +3,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import { useMenuStore } from "@/stores/useMenuStore";
+import { formatDateTable } from "@/utils/dateUtils";
 import { 
   ChartBarIcon, 
   MapPinIcon, 
@@ -575,7 +576,7 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(complaint.timestamp || complaint.createdAt).toLocaleDateString('th-TH')}
+                      {formatDateTable(complaint.timestamp || complaint.createdAt)}
                     </td>
                   </tr>
                 ))}

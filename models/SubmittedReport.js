@@ -13,10 +13,6 @@ const SubmittedReportSchema = new mongoose.Schema({
     lat: Number,
     lng: Number,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
   complaintId: {
     type: String,
     required: true,
@@ -29,10 +25,8 @@ const SubmittedReportSchema = new mongoose.Schema({
     type: String,
     default: 'on',
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
+}, {
+  timestamps: true // ✅ ให้ mongoose จัดการ createdAt และ updatedAt อัตโนมัติ
 });
 
 export default mongoose.models.SubmittedReport || mongoose.model('SubmittedReport', SubmittedReportSchema);

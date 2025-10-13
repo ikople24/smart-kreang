@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import useComplaintStore from "@/stores/useComplaintStore";
 import { useMenuStore } from "@/stores/useMenuStore";
 import { useProblemOptionStore } from "@/stores/useProblemOptionStore";
+import { formatDateShort } from "@/utils/dateUtils";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/autoplay";
@@ -60,11 +61,7 @@ export default function ComplaintListPage() {
                     <figure className="md:w-1/2 w-full aspect-[4/3] h-auto relative overflow-hidden">
                       <div className="absolute top-2 right-2 z-10">
                         <span className="px-2 py-1 text-info text-xs font-medium rounded-full bg-white/80 backdrop-blur-md shadow-sm">
-                          {new Date(item.createdAt).toLocaleDateString("th-TH", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "2-digit",
-                          })}
+                          {formatDateShort(item.createdAt)}
                         </span>
                       </div>
                       <div className="absolute bottom-2 right-2 left-2 z-10 flex flex-wrap gap-2">

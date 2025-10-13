@@ -7,6 +7,7 @@ import Image from "next/image";
 import CardOfficail from "./CardOfficail";
 import CardAssignment from "./CardAssignment";
 import SatisfactionChart from "./SatisfactionChart";
+import { formatDateShort } from "@/utils/dateUtils";
 
 
 export default function CardModalDetail({ modalData, onClose }) {
@@ -109,13 +110,7 @@ export default function CardModalDetail({ modalData, onClose }) {
                       </span>
                       <div className="flex items-center gap-2 text-white text-xs mt-1">
                         <span>
-                          {new Date(
-                            modalData.createdAt || modalData.updatedAt
-                          ).toLocaleDateString("th-TH", {
-                            year: "2-digit",
-                            month: "short",
-                            day: "numeric",
-                          })}
+                          {formatDateShort(modalData.createdAt || modalData.updatedAt)}
                         </span>
                         {modalData.status && (
                           <span className="border border-yellow-400 text-yellow-400 font-semibold px-3 py-1 rounded-full text-xs bg-yellow-400/10">
