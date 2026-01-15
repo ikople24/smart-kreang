@@ -23,11 +23,15 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 2) สร้าง Cron Job ให้เรียก:
 
-- Method: `POST`
+- Method: `POST` (หรือ `GET` ก็ได้)
 - URL: `https://<your-railway-domain>/api/pm25/collect?secret=<CRON_SECRET>`
 - Schedule: ทุก 10 นาที
 
 หมายเหตุ: endpoint นี้มี unique index (`node_id + timestamp`) กันการบันทึกซ้ำ หาก cron ยิงซ้ำก็จะไม่สร้างข้อมูลใหม่
+
+### เช็คใน MongoDB ต้องดู collection ชื่ออะไร?
+
+Mongoose จะสร้าง collection ชื่อ **`pmreadings`** (ตัวเล็ก + plural) โดยอัตโนมัติ
 
 ## Getting Started
 

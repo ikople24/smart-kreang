@@ -16,12 +16,18 @@ function isAuthorized(req) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
+  // Allow GET for easier testing / some schedulers defaulting to GET.
+  // Still requires CRON_SECRET.
+  if (req.method !== "POST" && req.method !== "GET") {
     return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
   if (!isAuthorized(req)) {
-    return res.status(401).json({ success: false, error: "Unauthorized" });
+    return res.status(401).json({
+      success: false,
+      error: "Unauthorized",
+      hint: "Provide ?secret=<CRON_SECRET> or header x-cron-secret",
+    });
   }
 
   try {
@@ -50,7 +56,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, saved: false, duplicate: true });
     }
     console.error("PM2.5 collect failed:", e);
-    return res.status(500).json({ success: false, error: "Internal error" });
+    return res.status(500).json({
+      success: false,
+      error: "Internal error",
+      hint: "Check MONGO_URI and that MongoDB is reachable from Railway",
+    });
   }
 }
 
