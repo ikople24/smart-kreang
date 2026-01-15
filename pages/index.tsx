@@ -10,6 +10,7 @@ import { useMenuStore, MenuItem } from "@/stores/useMenuStore";
 import ComplaintFormModal from "@/components/ComplaintFormModal";
 import Footer from "@/components/Footer";
 import SummaryStats from "@/components/SummaryStats";
+import Pm25Dashboard from "@/components/Pm25Dashboard";
 
 import { Download } from "lucide-react";
 
@@ -95,6 +96,9 @@ export default function Home() {
           {displayText}
         </span>
         <span className="animate-pulse text-indigo-500">|</span>
+      </div>
+      <div className="mt-4 px-4 w-full max-w-screen-sm mx-auto">
+        <Pm25Dashboard />
       </div>
       <SummaryStats />
       <div className="flex-1 px-4 pt-8 pb-20 w-full max-w-screen-sm mx-auto">

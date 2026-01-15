@@ -1,5 +1,34 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
+## PM2.5 (Hazemon) + เก็บย้อนหลังใน MongoDB
+
+โปรเจ็กนี้มี widget PM2.5 realtime บนหน้าแรก โดยดึงข้อมูลจาก Hazemon ผ่าน API ของโปรเจ็กนี้ (กัน CORS + ทำ fallback ได้)
+
+### API ที่เกี่ยวข้อง
+
+- `GET /api/pm25/latest`
+  - ดึงค่าล่าสุดจาก Hazemon (ถ้าดึงไม่ได้จะ fallback ไปอ่านค่าล่าสุดจาก MongoDB)
+- `POST /api/pm25/collect`
+  - ดึงค่าล่าสุดจาก Hazemon แล้ว `upsert` ลง MongoDB
+  - ต้องส่ง secret เพื่อความปลอดภัย (เหมาะสำหรับ Railway Cron)
+
+### Environment Variables
+
+- `MONGO_URI`: MongoDB connection string
+- `CRON_SECRET`: secret สำหรับเรียก `/api/pm25/collect`
+
+### ตั้งค่า Railway Cron (ทุก 10 นาที)
+
+1) ตั้งค่า env `CRON_SECRET` ใน Railway ให้เป็นค่าที่ยากต่อการเดา
+
+2) สร้าง Cron Job ให้เรียก:
+
+- Method: `POST`
+- URL: `https://<your-railway-domain>/api/pm25/collect?secret=<CRON_SECRET>`
+- Schedule: ทุก 10 นาที
+
+หมายเหตุ: endpoint นี้มี unique index (`node_id + timestamp`) กันการบันทึกซ้ำ หาก cron ยิงซ้ำก็จะไม่สร้างข้อมูลใหม่
+
 ## Getting Started
 
 First, run the development server:
