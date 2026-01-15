@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pm25:collect": "node scripts/pm25Collect.cjs"
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^4.13.23",

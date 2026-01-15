@@ -29,6 +29,27 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 หมายเหตุ: endpoint นี้มี unique index (`node_id + timestamp`) กันการบันทึกซ้ำ หาก cron ยิงซ้ำก็จะไม่สร้างข้อมูลใหม่
 
+### Railway แบบไม่ต้องให้เว็บ service รีสตาร์ทตามเวลา (แนะนำ)
+
+ถ้าคุณไม่อยากใช้ `Cron Schedule` ของ service (ซึ่งจะ “รัน/รีสตาร์ท” service ตามเวลา)
+ให้สร้าง **Cron service แยก** ที่รันสคริปต์เก็บข้อมูลแทน (เว็บหลักจะไม่ถูกแตะ)
+
+1) สร้าง service ใหม่ใน Railway จาก repo เดิม (แยกจาก web service)
+2) ตั้งค่า start command เป็น:
+
+- `npm run pm25:collect`
+
+3) ตั้ง Cron Schedule ของ service ใหม่นี้เป็น:
+
+- `*/10 * * * *`
+
+4) ให้ service ใหม่นี้มี env อย่างน้อย:
+
+- `MONGO_URI`
+- (optional) `HAZEMON_URL`
+
+สคริปต์จะ fetch Hazemon แล้ว upsert ลง MongoDB ใน collection `pmreadings` ทุกครั้งที่รัน
+
 ### เช็คใน MongoDB ต้องดู collection ชื่ออะไร?
 
 Mongoose จะสร้าง collection ชื่อ **`pmreadings`** (ตัวเล็ก + plural) โดยอัตโนมัติ
