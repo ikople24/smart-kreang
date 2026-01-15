@@ -5,6 +5,19 @@ import { parseHazemonLatest } from "@/lib/hazemon";
 const HAZEMON_URL =
   "https://hazemon.in.th/api/time_aggr/hazemon/TH-PKN-HuaHin-5132";
 
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 function isAuthorized(req) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
@@ -31,7 +44,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const r = await fetch(HAZEMON_URL, { headers: { accept: "application/json" } });
+    const r = await fetchWithTimeout(HAZEMON_URL, 8000);
     if (!r.ok) {
       return res.status(502).json({ success: false, error: "Upstream error", status: r.status });
     }

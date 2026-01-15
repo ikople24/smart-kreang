@@ -5,6 +5,20 @@ import { parseHazemonLatest } from "@/lib/hazemon";
 const HAZEMON_URL =
   "https://hazemon.in.th/api/time_aggr/hazemon/TH-PKN-HuaHin-5132";
 
+async function fetchJsonWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, {
+      headers: { accept: "application/json" },
+      signal: controller.signal,
+    });
+    return r;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ success: false, error: "Method not allowed" });
@@ -12,7 +26,7 @@ export default async function handler(req, res) {
 
   // 1) Try upstream first (fresh realtime)
   try {
-    const r = await fetch(HAZEMON_URL, { headers: { accept: "application/json" } });
+    const r = await fetchJsonWithTimeout(HAZEMON_URL, 4000);
     if (r.ok) {
       const json = await r.json();
       const latest = parseHazemonLatest(json);
