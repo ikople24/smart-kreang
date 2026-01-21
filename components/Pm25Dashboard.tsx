@@ -14,7 +14,12 @@ type ApiLatestResponse =
 type HistoryDaily = { date: string; avg: number; count: number }; // date: YYYY-MM-DD
 type HistoryMonthly = { key: string; avg: number; count: number }; // key: YYYY-MM
 type ApiHistoryResponse =
-  | { success: true; days: number; months: number; daily: HistoryDaily[]; monthly: HistoryMonthly[] }
+  | { success: true; source?: "hazemon" | "mongo"; days: number; months: number; daily: HistoryDaily[]; monthly: HistoryMonthly[] }
+  | { success: false; error: string };
+
+type TimePoint = { timestamp: number; datetime_local: string | null; pm25: number | null; count?: number };
+type ApiTimeseriesResponse =
+  | { success: true; from: number; to: number; step: number; points: TimePoint[] }
   | { success: false; error: string };
 
 type PmInfo = {
@@ -148,6 +153,17 @@ function parseDisplayDateTime(datetimeLocal: string | null | undefined) {
   };
 }
 
+function formatTimeTick(datetimeLocal: string | null, timestamp: number) {
+  if (datetimeLocal) {
+    const iso = datetimeLocal.includes(" ") ? datetimeLocal.replace(" ", "T") : datetimeLocal;
+    const dt = new Date(`${iso}+07:00`);
+    if (!Number.isNaN(dt.getTime())) return dt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  }
+  const dt = new Date(timestamp * 1000);
+  if (Number.isNaN(dt.getTime())) return String(timestamp);
+  return dt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+}
+
 type MonthlyRow = { key: string; month: number; year: number; name: string; fullName: string; avg: number; count: number };
 
 type DotProps = { cx?: number; cy?: number; payload?: { avg?: number } };
@@ -175,6 +191,8 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
   const [daily, setDaily] = useState<HistoryDaily[]>([]);
   const [monthly, setMonthly] = useState<HistoryMonthly[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [series, setSeries] = useState<TimePoint[]>([]);
+  const [seriesLoaded, setSeriesLoaded] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -277,10 +295,26 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
     }
   };
 
+  const loadSeriesIfNeeded = async () => {
+    if (seriesLoaded) return;
+    try {
+      // Sensor updates every ~2 minutes → use 120s step for nicer chart fidelity
+      const r = await fetch("/api/pm25/timeseries?hours=24&step=120&limit=1000");
+      const j = (await r.json()) as ApiTimeseriesResponse;
+      if (r.ok && "success" in j && j.success) {
+        setSeries(Array.isArray(j.points) ? j.points : []);
+      }
+      setSeriesLoaded(true);
+    } catch {
+      setSeriesLoaded(true);
+    }
+  };
+
   const handleClick = async () => {
     setCurrentInfo(pm25Info);
     setShowModal(true);
     await loadHistoryIfNeeded();
+    await loadSeriesIfNeeded();
   };
 
   // Loading state (เหมือนเดิม)
@@ -412,9 +446,7 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
               {/* สรุป 7 วันย้อนหลัง แบบแนวนอน (อยู่ด้านล่าง) */}
               {dailyAverages.length > 0 && (
                 <div className="border rounded-lg border-gray-300 p-3">
-                  <h4 className="font-semibold text-gray-800 mb-3 text-sm">
-                    🫧 คุณภาพอากาศย้อนหลัง {dailyAverages.length} วัน
-                  </h4>
+                  <h4 className="font-semibold text-gray-800 mb-3 text-sm">🫧 คุณภาพอากาศย้อนหลัง 7 วัน</h4>
 
                   {/* การ์ดแนวนอน scroll ได้ - เรียงจากวันล่าสุด(ซ้าย)ไปวันเก่า(ขวา) */}
                   <div className="overflow-x-auto pb-2">
@@ -482,11 +514,70 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
                     </div>
                   </div>
 
+                  {/* กราฟรายเวลา 24 ชม. (จากเซนเซอร์) */}
+                  {series.length > 1 && (
+                    <div className="mt-4 pt-3 border-t">
+                      <h5 className="font-semibold text-gray-700 mb-3 text-xs">⏱️ กราฟรายเวลา (24 ชม.)</h5>
+                      <div className="h-[150px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={series} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                            <defs>
+                              <linearGradient id="tsGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#2563eb" stopOpacity={0.35} />
+                                <stop offset="100%" stopColor="#2563eb" stopOpacity={0.05} />
+                              </linearGradient>
+                            </defs>
+                            <XAxis
+                              dataKey="timestamp"
+                              tick={{ fontSize: 10, fill: "#9ca3af" }}
+                              axisLine={{ stroke: "#e5e7eb" }}
+                              tickLine={false}
+                              tickFormatter={(ts: number) => formatTimeTick(null, ts)}
+                              minTickGap={25}
+                            />
+                            <YAxis
+                              tick={{ fontSize: 10, fill: "#9ca3af" }}
+                              axisLine={false}
+                              tickLine={false}
+                              domain={[0, "auto"]}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: "white",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                                boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                              }}
+                              formatter={(value) => [`${value} µg/m³`, "PM2.5"]}
+                              labelFormatter={(_, payload) => {
+                                if (!Array.isArray(payload) || payload.length === 0) return "";
+                                const p = payload[0]?.payload as TimePoint | undefined;
+                                if (!p) return "";
+                                const t = formatTimeTick(p.datetime_local ?? null, p.timestamp);
+                                return `เวลา ${t}`;
+                              }}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="pm25"
+                              stroke="#2563eb"
+                              strokeWidth={2}
+                              fill="url(#tsGradient)"
+                              dot={false}
+                              connectNulls
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+
                   {/* กราฟรายเดือน 12 เดือน */}
                   {monthlyAverages.length > 0 && (
                     <div className="mt-4 pt-3 border-t">
                       <h5 className="font-semibold text-gray-700 mb-3 text-xs">
-                        📈 สรุปรายเดือน ({monthlyAverages.length} เดือน)
+                        📈 สรุปรายเดือน (มีข้อมูล {monthlyAverages.length}/12 เดือน)
                       </h5>
 
                       <div className="h-[150px] w-full">

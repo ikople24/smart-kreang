@@ -8,6 +8,16 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 - `GET /api/pm25/latest`
   - ดึงค่าล่าสุดจาก Hazemon (ถ้าดึงไม่ได้จะ fallback ไปอ่านค่าล่าสุดจาก MongoDB)
+- `GET /api/pm25/upstream`
+  - proxy เรียก Hazemon upstream แบบ raw (กัน CORS)
+  - ถ้าต้องการ “ช่วงเวลา” ให้ส่ง `?from=<epoch_seconds>&to=<epoch_seconds>` แล้วระบบจะเรียก `<base>/<to>/<from>`
+- `GET /api/pm25/timeseries`
+  - คืนค่าเป็นชุดข้อมูลพร้อมทำกราฟ (chart-friendly)
+  - ใช้ `?hours=<1..72>` (default 24) หรือระบุ `?from=<epoch>&to=<epoch>`
+  - ปรับความถี่ด้วย `?step=<seconds>` (default 900 = 15 นาที), จำกัดจำนวนจุดด้วย `?limit=<n>`
+- `GET /api/pm25/history`
+  - **ดึงจาก Hazemon upstream ก่อน** แล้วค่อย fallback ไป DB (ถ้า upstream ใช้ไม่ได้)
+  - เหมาะกับกรณีมีข้อมูลเซนเซอร์เพิ่งเริ่ม (เช่นมีแค่ 3 วัน) และยังไม่อยากตั้ง cron เก็บลง DB
 - `POST /api/pm25/collect`
   - ดึงค่าล่าสุดจาก Hazemon แล้ว `upsert` ลง MongoDB
   - ต้องส่ง secret เพื่อความปลอดภัย (เหมาะสำหรับ Railway Cron)
@@ -16,6 +26,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 - `MONGO_URI`: MongoDB connection string
 - `CRON_SECRET`: secret สำหรับเรียก `/api/pm25/collect`
+- `HAZEMON_URL` (optional): URL ของ Hazemon upstream (ถ้าไม่ตั้งจะใช้ค่า default: `TH-NRT-อบต.ควนเคร็ง-5080a`)
 
 ### ตั้งค่า Railway Cron (ทุก 10 นาที)
 
