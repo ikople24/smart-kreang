@@ -1,8 +1,5 @@
 import { parseHazemonSeries } from "@/lib/hazemon";
-
-const HAZEMON_URL =
-  process.env.HAZEMON_URL ||
-  "https://hazemon.in.th/api/time_aggr/hazemon/TH-NRT-%E0%B8%AD%E0%B8%9A%E0%B8%95.%E0%B8%84%E0%B8%A7%E0%B8%99%E0%B9%80%E0%B8%84%E0%B8%A3%E0%B9%87%E0%B8%87-5080a";
+import { buildHazemonRangeUrl, getHazemonBaseUrl } from "@/lib/hazemonUrl";
 
 function clampInt(value, min, max, fallback) {
   const n = Number(value);
@@ -15,12 +12,6 @@ function toEpochSeconds(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
   return Math.trunc(n);
-}
-
-function buildHazemonUrl(baseUrl, fromEpoch, toEpoch) {
-  // Hazemon supports: <base>/<to>/<from>
-  if (fromEpoch == null || toEpoch == null) return baseUrl;
-  return `${baseUrl}/${toEpoch}/${fromEpoch}`;
 }
 
 async function fetchJsonWithTimeout(url, timeoutMs) {
@@ -102,9 +93,16 @@ export default async function handler(req, res) {
   const fromEpoch = Math.min(fromEpochRaw, toEpochRaw);
   const toEpoch = Math.max(fromEpochRaw, toEpochRaw);
 
-  const upstreamUrl = buildHazemonUrl(HAZEMON_URL, fromEpoch, toEpoch);
+  const baseUrl = getHazemonBaseUrl({ node: req.query.node });
+  const upstreamUrl = buildHazemonRangeUrl({
+    baseUrl,
+    beforeEpoch: toEpoch,
+    afterEpoch: fromEpoch,
+    aggrMinutes: req.query.aggr ?? process.env.HAZEMON_AGGR_MINUTES,
+  });
 
   try {
+    let upstreamUrl2 = null;
     const r = await fetchJsonWithTimeout(upstreamUrl, 8000);
     if (!r.ok) {
       return res.status(502).json({
@@ -115,8 +113,24 @@ export default async function handler(req, res) {
       });
     }
 
-    const json = await r.json();
-    const raw = parseHazemonSeries(json, { fromEpoch });
+    let json = await r.json();
+    let raw = parseHazemonSeries(json, { fromEpoch });
+
+    // Retry with swapped order if no points parsed.
+    if (raw.length === 0) {
+      upstreamUrl2 = buildHazemonRangeUrl({
+        baseUrl,
+        beforeEpoch: toEpoch,
+        afterEpoch: fromEpoch,
+        aggrMinutes: req.query.aggr ?? process.env.HAZEMON_AGGR_MINUTES,
+        order: "after_before",
+      });
+      const r2 = await fetchJsonWithTimeout(upstreamUrl2, 8000);
+      if (r2.ok) {
+        json = await r2.json();
+        raw = parseHazemonSeries(json, { fromEpoch });
+      }
+    }
     const inRange = raw.filter((p) => typeof p.timestamp === "number" && p.timestamp <= toEpoch);
 
     // Filter out missing/invalid values to avoid "broken" chart segments.
@@ -135,6 +149,7 @@ export default async function handler(req, res) {
       success: true,
       source: "hazemon",
       upstreamUrl,
+      upstreamUrl2,
       from: fromEpoch,
       to: toEpoch,
       step,

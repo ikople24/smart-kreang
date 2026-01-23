@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Circle } from "lucide-react";
+import { Circle, ExternalLink } from "lucide-react";
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+
+const SENSOR_NODE = "TH-NRT-ส.ควบคุมไฟป่าพรุควนเคร็ง-5068";
+
+const HAZEMON_MORE_INFO_URL =
+  "https://hazemon.in.th/v25.01/map.html?lat=8.015619&lng=100.126951&zoom=13&value=6&sensors=";
 
 type LatestPayload = {
   datetime_local?: string | null;
@@ -11,7 +16,7 @@ type ApiLatestResponse =
   | { success: true; source: "hazemon" | "mongo"; latest: LatestPayload }
   | { success: false; error: string };
 
-type HistoryDaily = { date: string; avg: number; count: number }; // date: YYYY-MM-DD
+type HistoryDaily = { date: string; avg: number | null; count: number }; // date: YYYY-MM-DD
 type HistoryMonthly = { key: string; avg: number; count: number }; // key: YYYY-MM
 type ApiHistoryResponse =
   | { success: true; source?: "hazemon" | "mongo"; days: number; months: number; daily: HistoryDaily[]; monthly: HistoryMonthly[] }
@@ -210,7 +215,7 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
     let alive = true;
     const load = async () => {
       try {
-        const r = await fetch("/api/pm25/latest");
+        const r = await fetch(`/api/pm25/latest?node=${encodeURIComponent(SENSOR_NODE)}`);
         const j = (await r.json()) as ApiLatestResponse;
         if (!alive) return;
         if (!r.ok || !("success" in j) || j.success === false) {
@@ -247,15 +252,25 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
     const processed = daily
       .map((row) => {
         const dmy = isoToDMY(row.date);
+        const avgNum = typeof row.avg === "number" && Number.isFinite(row.avg) ? Math.round(row.avg) : null;
         return {
           date: dmy,
-          avg: Math.round(Number(row.avg) || 0),
+          avg: avgNum,
           dayName: getDayName(dmy),
         };
       })
-      .filter((row) => row.avg > 0);
+      .slice(0, 7);
     return processed;
   }, [daily]);
+
+  const dailyStats = useMemo(() => {
+    const nums = dailyAverages.map((d) => d.avg).filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+    if (nums.length === 0) return { min: null, avg: null, max: null };
+    const min = Math.min(...nums);
+    const max = Math.max(...nums);
+    const avg = Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
+    return { min, avg, max };
+  }, [dailyAverages]);
 
   const monthlyAverages: MonthlyRow[] = useMemo(() => {
     if (!monthly || monthly.length === 0) return [];
@@ -283,7 +298,7 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
   const loadHistoryIfNeeded = async () => {
     if (historyLoaded) return;
     try {
-      const r = await fetch("/api/pm25/history?days=7&months=12");
+      const r = await fetch(`/api/pm25/history?days=7&months=12&node=${encodeURIComponent(SENSOR_NODE)}`);
       const j = (await r.json()) as ApiHistoryResponse;
       if (r.ok && "success" in j && j.success) {
         setDaily(Array.isArray(j.daily) ? j.daily : []);
@@ -299,7 +314,7 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
     if (seriesLoaded) return;
     try {
       // Sensor updates every ~2 minutes → use 120s step for nicer chart fidelity
-      const r = await fetch("/api/pm25/timeseries?hours=24&step=120&limit=1000");
+      const r = await fetch(`/api/pm25/timeseries?hours=24&step=120&limit=1000&node=${encodeURIComponent(SENSOR_NODE)}`);
       const j = (await r.json()) as ApiTimeseriesResponse;
       if (r.ok && "success" in j && j.success) {
         setSeries(Array.isArray(j.points) ? j.points : []);
@@ -414,11 +429,10 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-5 max-w-md w-full max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">ข้อมูลคุณภาพอากาศ</h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-xl"
-              >
+              <div className="flex flex-col gap-1">
+                <h3 className="text-lg font-semibold">ข้อมูลคุณภาพอากาศ</h3>
+              </div>
+              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700 text-xl">
                 ✕
               </button>
             </div>
@@ -443,6 +457,18 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
                 <div className="text-gray-700 text-sm whitespace-pre-line">{currentInfo.prevention}</div>
               </div>
 
+              <div className="flex justify-end items-center gap-2">
+                <span className="text-xs text-gray-500">ดูข้อมูลเพิ่มเติมได้ที่ &gt;&gt;&gt;</span>
+                <a
+                  href={HAZEMON_MORE_INFO_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center text-xs font-medium px-3 py-2 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                >
+                  วัดฝุ่นไทย <ExternalLink size={14} className="ml-1" />
+                </a>
+              </div>
+
               {/* สรุป 7 วันย้อนหลัง แบบแนวนอน (อยู่ด้านล่าง) */}
               {dailyAverages.length > 0 && (
                 <div className="border rounded-lg border-gray-300 p-3">
@@ -452,7 +478,8 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
                   <div className="overflow-x-auto pb-2">
                     <div className="flex gap-2" style={{ minWidth: "max-content" }}>
                       {[...dailyAverages].reverse().map((day, index) => {
-                        const dayInfo = getPm25LevelInfo(day.avg);
+                        const hasValue = typeof day.avg === "number" && Number.isFinite(day.avg);
+                        const dayInfo = hasValue ? getPm25LevelInfo(day.avg as number) : null;
                         const dateParts = day.date.split("/");
                         const shortDate = dateParts.length >= 2 ? `${dateParts[0]}/${dateParts[1]}` : day.date;
                         const isToday = index === 0; // วันแรก (ซ้ายสุด) คือวันล่าสุด
@@ -479,12 +506,16 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
                             </span>
 
                             {/* Badge ค่า AQI */}
-                            <div className={`${dayInfo.badgeBg} text-white text-xs font-bold px-2 py-1 rounded mb-2`}>
-                              {day.avg}
+                            <div
+                              className={`${
+                                dayInfo ? dayInfo.badgeBg : "bg-gray-400"
+                              } text-white text-xs font-bold px-2 py-1 rounded mb-2`}
+                            >
+                              {hasValue ? day.avg : "--"}
                             </div>
 
                             {/* ไอคอนสถานะ */}
-                            {dayInfo.icon}
+                            {dayInfo ? dayInfo.icon : <Circle fill="#9ca3af" stroke="#9ca3af" size={10} />}
 
                             {/* ป้าย "วันนี้" สำหรับวันล่าสุด */}
                             {isToday && (
@@ -500,17 +531,15 @@ const Pm25Dashboard = ({ className = "" }: { className?: string }) => {
                   <div className="grid grid-cols-3 gap-2 text-center text-xs mt-3 pt-3 border-t">
                     <div>
                       <p className="text-gray-500">ต่ำสุด</p>
-                      <p className="font-bold text-green-600">{Math.min(...dailyAverages.map((d) => d.avg))}</p>
+                      <p className="font-bold text-green-600">{dailyStats.min ?? "--"}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">เฉลี่ย</p>
-                      <p className="font-bold text-yellow-600">
-                        {Math.round(dailyAverages.reduce((a, b) => a + b.avg, 0) / dailyAverages.length)}
-                      </p>
+                      <p className="font-bold text-yellow-600">{dailyStats.avg ?? "--"}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">สูงสุด</p>
-                      <p className="font-bold text-red-600">{Math.max(...dailyAverages.map((d) => d.avg))}</p>
+                      <p className="font-bold text-red-600">{dailyStats.max ?? "--"}</p>
                     </div>
                   </div>
 

@@ -1,18 +1,10 @@
-const HAZEMON_URL =
-  process.env.HAZEMON_URL ||
-  "https://hazemon.in.th/api/time_aggr/hazemon/TH-NRT-%E0%B8%AD%E0%B8%9A%E0%B8%95.%E0%B8%84%E0%B8%A7%E0%B8%99%E0%B9%80%E0%B8%84%E0%B8%A3%E0%B9%87%E0%B8%87-5080a";
+import { buildHazemonRangeUrl, getHazemonBaseUrl } from "@/lib/hazemonUrl";
 
 function toEpochSeconds(value) {
   if (value == null || value === "") return null;
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
   return Math.trunc(n);
-}
-
-function buildHazemonUrl(baseUrl, fromEpoch, toEpoch) {
-  // Hazemon supports: <base>/<to>/<from>
-  if (fromEpoch == null || toEpoch == null) return baseUrl;
-  return `${baseUrl}/${toEpoch}/${fromEpoch}`;
 }
 
 async function fetchJsonWithTimeout(url, timeoutMs) {
@@ -47,7 +39,16 @@ export default async function handler(req, res) {
   const fromEpoch = from == null ? null : Math.min(from, to);
   const toEpoch = to == null ? null : Math.max(from, to);
 
-  const upstreamUrl = buildHazemonUrl(HAZEMON_URL, fromEpoch, toEpoch);
+  const baseUrl = getHazemonBaseUrl({ node: req.query.node });
+  const upstreamUrl =
+    fromEpoch == null || toEpoch == null
+      ? baseUrl
+      : buildHazemonRangeUrl({
+          baseUrl,
+          beforeEpoch: toEpoch,
+          afterEpoch: fromEpoch,
+          aggrMinutes: req.query.aggr ?? process.env.HAZEMON_AGGR_MINUTES,
+        });
 
   try {
     const r = await fetchJsonWithTimeout(upstreamUrl, 8000);

@@ -10,7 +10,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
   - ดึงค่าล่าสุดจาก Hazemon (ถ้าดึงไม่ได้จะ fallback ไปอ่านค่าล่าสุดจาก MongoDB)
 - `GET /api/pm25/upstream`
   - proxy เรียก Hazemon upstream แบบ raw (กัน CORS)
-  - ถ้าต้องการ “ช่วงเวลา” ให้ส่ง `?from=<epoch_seconds>&to=<epoch_seconds>` แล้วระบบจะเรียก `<base>/<to>/<from>`
+  - ถ้าต้องการ “ช่วงเวลา” ให้ส่ง `?from=<epoch_seconds>&to=<epoch_seconds>` แล้วระบบจะเรียก `<base>/<before>/<after>` (ก่อน=to, หลัง=from)
+  - ถ้า upstream ของคุณต้องมีท้าย `/1440` ให้ส่ง `?aggr=1440` (หรือใช้ env `HAZEMON_AGGR_MINUTES=1440`)
 - `GET /api/pm25/timeseries`
   - คืนค่าเป็นชุดข้อมูลพร้อมทำกราฟ (chart-friendly)
   - ใช้ `?hours=<1..72>` (default 24) หรือระบุ `?from=<epoch>&to=<epoch>`
@@ -26,7 +27,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 - `MONGO_URI`: MongoDB connection string
 - `CRON_SECRET`: secret สำหรับเรียก `/api/pm25/collect`
-- `HAZEMON_URL` (optional): URL ของ Hazemon upstream (ถ้าไม่ตั้งจะใช้ค่า default: `TH-NRT-อบต.ควนเคร็ง-5080a`)
+- `HAZEMON_URL` (optional): ใช้แบบเดิม (ใส่ URL เต็มของ Hazemon upstream) เช่น `https://hazemon.in.th/api/time_aggr/hazemon/<node-slug>`
+- `HAZEMON_NODE_ID` (optional): ใช้แบบใหม่ (ใส่ node id/slug) เช่น `TH-CRI-เทศบาลท่าสุด-5092` แล้วระบบจะประกอบเป็น `https://hazemon.in.th/api/time_aggr/hazemon/<nodeid>`
+- `HAZEMON_API_ROOT` (optional): เปลี่ยน root ของ API (default: `https://hazemon.in.th/api/time_aggr/hazemon`)
+- `HAZEMON_AGGR_MINUTES` (optional): ถ้า upstream ต้องการ suffix เช่น `/1440` ให้ตั้งเป็น `1440`
 
 ### ตั้งค่า Railway Cron (ทุก 10 นาที)
 

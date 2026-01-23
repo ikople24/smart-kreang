@@ -1,10 +1,7 @@
 import dbConnect from "@/lib/dbConnect";
 import PmReading from "@/models/PmReading";
 import { parseHazemonLatest } from "@/lib/hazemon";
-
-const HAZEMON_URL =
-  process.env.HAZEMON_URL ||
-  "https://hazemon.in.th/api/time_aggr/hazemon/TH-NRT-%E0%B8%AD%E0%B8%9A%E0%B8%95.%E0%B8%84%E0%B8%A7%E0%B8%99%E0%B9%80%E0%B8%84%E0%B8%A3%E0%B9%87%E0%B8%87-5080a";
+import { buildHazemonRangeUrl, getHazemonBaseUrl } from "@/lib/hazemonUrl";
 
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
@@ -45,7 +42,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const r = await fetchWithTimeout(HAZEMON_URL, 8000);
+    const baseUrl = getHazemonBaseUrl({ node: req.query.node });
+    const nowEpoch = Math.floor(Date.now() / 1000);
+    const before = nowEpoch;
+    const after = nowEpoch - 6 * 60 * 60;
+    const upstreamUrl = buildHazemonRangeUrl({
+      baseUrl,
+      beforeEpoch: before,
+      afterEpoch: after,
+      aggrMinutes: req.query.aggr ?? process.env.HAZEMON_AGGR_MINUTES,
+    });
+
+    const r = await fetchWithTimeout(upstreamUrl, 8000);
     if (!r.ok) {
       return res.status(502).json({ success: false, error: "Upstream error", status: r.status });
     }

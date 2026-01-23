@@ -9,14 +9,14 @@
  * - MONGO_URI
  *
  * Optional env:
- * - HAZEMON_URL (default: TH-NRT-อบต.ควนเคร็ง-5080a)
+ * - HAZEMON_URL (default: TH-NRT-ส.ควบคุมไฟป่าพรุควนเคร็ง-5068)
  */
 
 const mongoose = require("mongoose");
 
 const HAZEMON_URL =
   process.env.HAZEMON_URL ||
-  "https://hazemon.in.th/api/time_aggr/hazemon/TH-NRT-%E0%B8%AD%E0%B8%9A%E0%B8%95.%E0%B8%84%E0%B8%A7%E0%B8%99%E0%B9%80%E0%B8%84%E0%B8%A3%E0%B9%87%E0%B8%87-5080a";
+  "https://hazemon.in.th/api/time_aggr/hazemon/TH-NRT-%E0%B8%AA.%E0%B8%84%E0%B8%A7%E0%B8%9A%E0%B8%84%E0%B8%B8%E0%B8%A1%E0%B9%84%E0%B8%9F%E0%B8%9B%E0%B9%88%E0%B8%B2%E0%B8%9E%E0%B8%A3%E0%B8%B8%E0%B8%84%E0%B8%A7%E0%B8%99%E0%B9%80%E0%B8%84%E0%B8%A3%E0%B9%87%E0%B8%87-5068";
 
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
